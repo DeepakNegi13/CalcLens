@@ -25,9 +25,25 @@ It is built for students learning differential and multivariable calculus, and f
 
 ## 🖼️ Screenshots
 
-| 2D: ordinary derivative | 3D: partial derivatives |
+### Workspace & Interactive Canvas
+| Dark Mode | Light Mode |
 |---|---|
-| ![2D view](docs/ui-2d.png) | ![3D view](docs/ui-3d.png) |
+| ![Workspace Dark](docs/ui-preview.png) | ![Workspace Light](docs/ui-preview-light.png) |
+
+### 2D Mode: Ordinary Derivatives & Tangents
+| Dark Mode | Light Mode |
+|---|---|
+| ![2D View Dark](docs/ui-2d.png) | ![2D View Light](docs/ui-2d-light.png) |
+
+### 3D Mode: Multivariable Surfaces & Tangent Planes
+| Dark Mode | Light Mode |
+|---|---|
+| ![3D View Dark](docs/ui-3d.png) | ![3D View Light](docs/ui-3d-light.png) |
+
+### Mobile Responsive Layout
+| Dark Mode | Light Mode |
+|---|---|
+| ![Mobile View Dark](docs/ui-mobile-2d.png) | ![Mobile View Light](docs/ui-mobile-light.png) |
 
 ---
 
@@ -269,4 +285,4 @@ MIT. Free to use, learn from, and build on.
 
 ---
 
-<p align="center">Made with ❤️ by <b>&lt;your-name&gt;</b> · Star ⭐ the repo if CalcLens helped you!</p>
+<p align="center">Made with ❤️ by <b>&lt;Deepak Negi&gt;</b> · Star ⭐ the repo if CalcLens helped you!</p>
