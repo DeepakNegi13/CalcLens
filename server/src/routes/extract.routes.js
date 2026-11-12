@@ -11,3 +11,4 @@ router.post("/", upload.single("image"), handleExtractImage);
 router.post("/text", handleExtractText);
 
 export default router;
+

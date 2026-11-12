@@ -1,28 +1,67 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import Plot from "./PlotlyChart";
-import { Download, RotateCcw, Plus, Minus, Layers, TrendingUp } from "lucide-react";
+import { Download, RotateCcw, Plus, Minus, Play, Pause, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { useTheme } from "next-themes";
 import { sampleMultipleSlopes } from "../lib/sampleFunction.js";
 import { compute2DSecantLine } from "../lib/tangent.js";
+import { Slider } from "@/components/ui/slider";
 
 export default function Graph2D({
   curveData = { x: [], y: [] },
   tangentLine = { x: [], y: [], equation: "" },
   point = { x: 1.5, y: 1.0 },
+  onChangePoint,
   pointValue = 0,
   slope = 0,
   expression = "",
   evaluateFn = null,
   derivFn = null,
-  xRange = [-5, 5],
-  yRange = [-5, 5],
   onResetView,
 }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
+  // Controlled zoom ranges so the graph never expands uncontrollably
+  const [zoomFactor, setZoomFactor] = useState(1);
+  const baseRange = 5;
+  const currentRange = baseRange * zoomFactor;
+  const xRange = useMemo(() => [-currentRange, currentRange], [currentRange]);
+  const yRange = useMemo(() => [-currentRange, currentRange], [currentRange]);
+
   const [showSecant, setShowSecant] = useState(false);
   const [showMultiSlope, setShowMultiSlope] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const animRef = useRef(null);
+  const dirRef = useRef(1);
+
+  // Auto-trace animation
+  useEffect(() => {
+    if (!isPlaying) {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      return;
+    }
+
+    const step = 0.02;
+    const animate = () => {
+      onChangePoint?.((prev) => {
+        let nextX = prev.x + step * dirRef.current;
+        if (nextX >= xRange[1] * 0.9) {
+          nextX = xRange[1] * 0.9;
+          dirRef.current = -1;
+        } else if (nextX <= xRange[0] * 0.9) {
+          nextX = xRange[0] * 0.9;
+          dirRef.current = 1;
+        }
+        return { ...prev, x: parseFloat(nextX.toFixed(2)) };
+      });
+      animRef.current = requestAnimationFrame(animate);
+    };
+
+    animRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [isPlaying, xRange, onChangePoint]);
 
   // Compute secant line
   const secantData = useMemo(() => {
@@ -33,8 +72,8 @@ export default function Graph2D({
   // Compute multiple slopes along the curve (User requested feature!)
   const multiSlopeData = useMemo(() => {
     if (!showMultiSlope || !evaluateFn || !derivFn) return null;
-    return sampleMultipleSlopes(evaluateFn, derivFn, xRange, 9, 0.8);
-  }, [showMultiSlope, evaluateFn, derivFn, xRange]);
+    return sampleMultipleSlopes(evaluateFn, derivFn, xRange, 9, 0.8 * zoomFactor);
+  }, [showMultiSlope, evaluateFn, derivFn, xRange, zoomFactor]);
 
   // Plotly traces
   const traces = useMemo(() => {
@@ -145,14 +184,15 @@ export default function Graph2D({
   const layout = useMemo(() => {
     return {
       autosize: true,
-      margin: { l: 45, r: 25, t: 20, b: 35 },
+      margin: { l: 40, r: 20, t: 20, b: 30 },
       paper_bgcolor: "transparent",
       plot_bgcolor: "transparent",
       showlegend: false,
+      dragmode: "pan", // Prevents runaway zoom box
       xaxis: {
         range: xRange,
-        gridcolor: isDark ? "rgba(255, 255, 255, 0.07)" : "rgba(0, 0, 0, 0.07)",
-        zerolinecolor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+        gridcolor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.07)",
+        zerolinecolor: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.25)",
         zerolinewidth: 1.5,
         tickfont: {
           family: "JetBrains Mono, monospace",
@@ -162,8 +202,10 @@ export default function Graph2D({
       },
       yaxis: {
         range: yRange,
-        gridcolor: isDark ? "rgba(255, 255, 255, 0.07)" : "rgba(0, 0, 0, 0.07)",
-        zerolinecolor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+        scaleanchor: "x",
+        scaleratio: 1, // Keeps 1:1 proportional coordinate geometry
+        gridcolor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.07)",
+        zerolinecolor: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.25)",
         zerolinewidth: 1.5,
         tickfont: {
           family: "JetBrains Mono, monospace",
@@ -182,12 +224,29 @@ export default function Graph2D({
   const config = {
     responsive: true,
     displayModeBar: false,
+    scrollZoom: false, // PREVENTS uncontrollable mouse wheel zooming!
+    doubleClick: "reset",
+  };
+
+  const handleZoom = (factor) => {
+    setZoomFactor((prev) => Math.max(0.2, Math.min(4.0, prev * factor)));
+  };
+
+  const handleReset = () => {
+    setZoomFactor(1);
+    onResetView?.();
+  };
+
+  const stepX = (delta) => {
+    if (!onChangePoint) return;
+    const nextX = Math.min(xRange[1], Math.max(xRange[0], point.x + delta));
+    onChangePoint({ ...point, x: parseFloat(nextX.toFixed(2)) });
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-card/40 backdrop-blur-md rounded-2xl border border-border/80 overflow-hidden relative shadow-xs">
+    <div className="flex-1 flex flex-col h-full max-h-full bg-card/40 backdrop-blur-md rounded-2xl border border-border/80 overflow-hidden shadow-xs">
       {/* Top Header / Legend bar */}
-      <div className="h-11 px-4 border-b border-border/40 flex items-center justify-between text-xs font-mono bg-card/60">
+      <div className="h-11 px-4 border-b border-border/40 flex items-center justify-between text-xs font-mono bg-card/60 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
@@ -221,56 +280,133 @@ export default function Graph2D({
             }`}
             title="Toggle multiple slope segments along the curve"
           >
-            <TrendingUp className="w-3 h-3" />
-            <span>Multiple Slopes</span>
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Multi-Slopes</span>
           </button>
         </div>
 
-        {/* Right Toolbar */}
+        {/* Zoom & View Controls */}
         <div className="flex items-center space-x-1">
           <button
-            onClick={onResetView}
+            onClick={() => handleZoom(0.8)}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title="Reset View"
+            title="Zoom In"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => handleZoom(1.25)}
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Zoom Out"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleReset}
+            className="px-2 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground text-[11px] font-mono transition-colors flex items-center gap-1"
+            title="Reset to 1:1 Scale"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span className="hidden sm:inline">1:1</span>
           </button>
         </div>
       </div>
 
-      {/* Main Plot Area */}
-      <div className="flex-1 w-full min-h-[350px] relative">
-        <Plot
-          data={traces}
-          layout={layout}
-          config={config}
-          style={{ width: "100%", height: "100%" }}
-          useResizeHandler={true}
-        />
+      {/* Main Plot Area - STRICTLY CONSTRAINED WITH ABSOLUTE INSET-0 */}
+      <div className="relative flex-1 min-h-[260px] w-full overflow-hidden">
+        <div className="absolute inset-0">
+          <Plot
+            data={traces}
+            layout={layout}
+            config={config}
+            style={{ width: "100%", height: "100%" }}
+            useResizeHandler={true}
+          />
+        </div>
 
-        {/* Floating Point Badge */}
+        {/* Floating Point Coordinates Tag */}
         {!isNaN(pointValue) && isFinite(pointValue) && (
-          <div className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-card/80 backdrop-blur-md border border-border/80 shadow-md font-mono text-xs flex items-center space-x-2 pointer-events-none">
+          <div className="absolute top-3 right-3 px-3 py-1 rounded-lg bg-card/85 backdrop-blur-md border border-border/80 shadow-md font-mono text-xs flex items-center space-x-2 pointer-events-none z-10">
             <span className="w-2 h-2 rounded-full bg-slope animate-ping" />
             <span className="text-foreground font-medium">
-              x: {point.x.toFixed(2)} | f(x): {pointValue.toFixed(2)} | m:{" "}
+              ({point.x.toFixed(2)}, {pointValue.toFixed(2)}) · m ={" "}
               <span className="text-slope font-bold">{slope >= 0 ? `+${slope.toFixed(2)}` : slope.toFixed(2)}</span>
             </span>
           </div>
         )}
       </div>
 
-      {/* Bottom Status bar */}
-      <div className="h-10 px-4 border-t border-border/40 flex items-center justify-between text-[11px] font-mono text-muted-foreground bg-card/50">
-        <div className="flex items-center space-x-4">
-          <span className="text-emerald-500 font-medium">● Instantaneous Slope active</span>
-          <span className="hidden sm:inline">Range: [{xRange[0]}, {xRange[1]}]</span>
+      {/* Active Coordinate Scrubber directly under the graph matching Stitch designs */}
+      {onChangePoint && (
+        <div className="p-3 bg-card/70 border-t border-border/40 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  isPlaying
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary text-secondary-foreground border-border/50 hover:bg-muted"
+                }`}
+                title={isPlaying ? "Pause" : "Trace Curve"}
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+              </button>
+
+              <div className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                ACTIVE COORDINATE{" "}
+                <span className="text-foreground font-bold font-mono text-sm ml-1 px-1.5 py-0.5 rounded bg-secondary">
+                  x = {point.x.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Slider with step buttons */}
+            <div className="flex-1 flex items-center space-x-2 max-w-md mx-2">
+              <button
+                onClick={() => stepX(-0.1)}
+                className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-mono"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <Slider
+                value={[point.x]}
+                min={xRange[0]}
+                max={xRange[1]}
+                step={0.01}
+                onValueChange={([val]) => onChangePoint({ ...point, x: val })}
+                className="flex-1"
+              />
+
+              <button
+                onClick={() => stepX(+0.1)}
+                className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-mono"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Slope summary tag */}
+            <div className="font-mono text-xs flex items-center space-x-1 shrink-0 self-end sm:self-center">
+              <span className="text-muted-foreground">Slope:</span>
+              <span className="font-bold text-slope px-2 py-0.5 rounded bg-slope/10 border border-slope/20">
+                {slope >= 0 ? `+${slope.toFixed(2)}` : slope.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Status strip */}
+      <div className="h-9 px-4 border-t border-border/40 flex items-center justify-between text-[11px] font-mono text-muted-foreground bg-card/50 shrink-0">
+        <div className="flex items-center space-x-3">
+          <span className="text-emerald-500 font-medium">● 2D Mode Active</span>
+          <span className="hidden sm:inline">Domain: [{xRange[0].toFixed(1)}, {xRange[1].toFixed(1)}]</span>
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-[10px] px-2 py-0.5 rounded bg-slope/10 text-slope border border-slope/20 font-bold">
-            m = {isNaN(slope) ? "undefined" : slope.toFixed(3)}
-          </span>
+          <span className="text-[10px] text-muted-foreground">Drag to Pan · Double-click to Reset</span>
         </div>
       </div>
     </div>

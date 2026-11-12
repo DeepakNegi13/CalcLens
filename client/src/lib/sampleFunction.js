@@ -191,3 +191,4 @@ export function sampleMultipleSlopes(evaluateFn, derivFn, xRange = [-5, 5], coun
 
   return { linesX, linesY, points };
 }
+

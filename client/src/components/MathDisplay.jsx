@@ -23,3 +23,4 @@ export default function MathDisplay({ math = "", block = false, className = "" }
     />
   );
 }
+

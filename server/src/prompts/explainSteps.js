@@ -10,3 +10,4 @@ If it is a partial derivative:
 - Provide the step-by-step differentiation rules applied (power rule, product rule, chain rule, etc.).
 End with the numeric slope value at the given point if a point is provided.
 Return ONLY valid JSON: { "steps": string[] }`;
+

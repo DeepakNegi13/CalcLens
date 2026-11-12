@@ -163,3 +163,4 @@ export default function ImageUpload({ onImageSelected, isUploading = false }) {
     </div>
   );
 }
+

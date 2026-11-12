@@ -20,3 +20,4 @@ if (!isApiKeyConfigured()) {
   console.warn("   (Extraction and AI steps require GEMINI_API_KEY)");
   console.warn("========================================================\n");
 }
+

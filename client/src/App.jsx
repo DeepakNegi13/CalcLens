@@ -14,12 +14,11 @@ import EmptyState from "./components/EmptyState";
 import HowItWorksModal from "./components/HowItWorksModal";
 import { Toaster } from "@/components/ui/sonner";
 import { useCalculus } from "./hooks/useCalculus";
-import { Compass, TrendingUp, Layers, Eye } from "lucide-react";
+import { Compass, TrendingUp, Layers } from "lucide-react";
 
 export default function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [activeModule, setActiveModule] = useState("derivative");
-  const [mobileTab, setMobileTab] = useState("workspace"); // "workspace" | "graph" | "results"
 
   const calc = useCalculus();
 
@@ -34,7 +33,7 @@ export default function App() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
-      <div className="min-h-screen bg-background text-foreground flex flex-col antialiased selection:bg-indigo-500/20 font-sans">
+      <div className="h-screen w-screen overflow-hidden bg-background text-foreground flex flex-col antialiased selection:bg-indigo-500/20 font-sans">
         {/* Navbar */}
         <Navbar
           onOpenHowItWorks={() => setIsHelpOpen(true)}
@@ -54,9 +53,9 @@ export default function App() {
           />
 
           {/* Main Workspace Layout */}
-          <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden p-3 sm:p-4 lg:p-5 gap-4 lg:gap-5">
-            {/* Left Control Column (Inputs, Sliders, Results) */}
-            <div className="w-full lg:w-[380px] xl:w-[410px] shrink-0 flex flex-col space-y-4 overflow-y-auto pr-0 lg:pr-1">
+          <main className="flex-1 h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden p-3 lg:p-4 gap-4">
+            {/* Left Control Column (Inputs, Results, Steps) */}
+            <div className="w-full lg:w-[380px] xl:w-[410px] shrink-0 h-auto lg:h-full overflow-y-auto space-y-4 pr-0 lg:pr-1 pb-4">
               {/* Input Pipeline Card */}
               <div className="rounded-2xl border border-border/80 bg-card/50 backdrop-blur-md p-4 sm:p-5 shadow-xs">
                 <InputPanel
@@ -77,18 +76,6 @@ export default function App() {
                   error={calc.error}
                 />
               </div>
-
-              {/* Point Scrubbing Sliders */}
-              {calc.status === "ready" && (
-                <PointSliders
-                  mode={calc.mode}
-                  point={calc.point}
-                  onChangePoint={calc.setPoint}
-                  xRange={calc.xRange}
-                  yRange={calc.yRange}
-                  isDifferential={calc.isDifferential}
-                />
-              )}
 
               {/* 3D Viewport Layers Toggles */}
               {calc.status === "ready" && calc.mode === "3d" && !calc.isDifferential && (
@@ -129,7 +116,7 @@ export default function App() {
             </div>
 
             {/* Right Hero Panel: Interactive Graph */}
-            <div className="flex-1 flex flex-col min-h-[460px] lg:min-h-0 relative">
+            <div className="flex-1 h-[520px] lg:h-full min-h-0 flex flex-col overflow-hidden relative">
               {calc.status === "idle" ? (
                 <EmptyState onSelectPreset={calc.handleSelectPreset} />
               ) : calc.isDifferential ? (
@@ -137,15 +124,15 @@ export default function App() {
                   expression={calc.expression}
                   evaluateFn={calc.evaluateFn}
                   point={calc.point}
+                  onChangePoint={calc.setPoint}
                   slope={calc.slopeX}
-                  xRange={calc.xRange}
-                  yRange={calc.yRange}
                   onResetView={calc.handleResetView}
                 />
               ) : calc.mode === "3d" ? (
                 <Graph3D
                   surfaceData={calc.surfaceData3D}
                   point={calc.point}
+                  onChangePoint={calc.setPoint}
                   pointValue={calc.pointValue}
                   slopeX={calc.slopeX}
                   slopeY={calc.slopeY}
@@ -160,13 +147,12 @@ export default function App() {
                   curveData={calc.curveData2D}
                   tangentLine={calc.tangentLine2D}
                   point={calc.point}
+                  onChangePoint={calc.setPoint}
                   pointValue={calc.pointValue}
                   slope={calc.slopeX}
                   expression={calc.expression}
                   evaluateFn={calc.evaluateFn}
                   derivFn={calc.derivFn}
-                  xRange={calc.xRange}
-                  yRange={calc.yRange}
                   onResetView={calc.handleResetView}
                 />
               )}
@@ -175,7 +161,7 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Bar */}
-        <div className="lg:hidden h-14 border-t border-border bg-card/90 backdrop-blur-md px-3 flex items-center justify-around text-xs font-mono select-none sticky bottom-0 z-40">
+        <div className="lg:hidden h-14 border-t border-border bg-card/90 backdrop-blur-md px-3 flex items-center justify-around text-xs font-mono select-none sticky bottom-0 z-40 shrink-0">
           <button
             onClick={() => handleModuleChange("derivative")}
             className={`flex flex-col items-center py-1 px-3 rounded-lg ${

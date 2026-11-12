@@ -103,3 +103,4 @@ export default function EmptyState({ onSelectPreset }) {
     </div>
   );
 }
+

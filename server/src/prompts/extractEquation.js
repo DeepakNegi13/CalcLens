@@ -26,3 +26,4 @@ Rules:
 5. If there are more than two variables, return the first two alphabetically in "variables" and explain in "notes".
 6. If there is no readable math expression, return {"error": "UNREADABLE", "message": "<short reason>"}.
 7. Never solve, simplify, or differentiate. Only transcribe and normalize.`;
+

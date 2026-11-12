@@ -69,3 +69,4 @@ export function numericalDerivative(evaluateFn, scope, variable = "x", h = 1e-5)
 
   return (fPlus - fMinus) / (2 * h);
 }
+

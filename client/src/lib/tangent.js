@@ -126,3 +126,4 @@ export function compute3DTangents(a, b, fab, fx, fy, xRange = [-5, 5], yRange = 
     normalVector,
   };
 }
+

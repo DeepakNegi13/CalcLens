@@ -59,3 +59,4 @@ export async function handleExtractText(req, res, next) {
     next(error);
   }
 }
+
