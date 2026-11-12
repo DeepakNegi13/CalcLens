@@ -285,4 +285,4 @@ MIT. Free to use, learn from, and build on.
 
 ---
 
-<p align="center">Made with ❤️ by <b>&lt;Deepak Negi&gt;</b> · Star ⭐ the repo if CalcLens helped you!</p>
+<p align="center">Made with ❤️ by Deepak Negi · Star ⭐ the repo if CalcLens helped you!</p>
