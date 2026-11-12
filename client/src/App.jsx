@@ -99,6 +99,7 @@ export default function App() {
                   tangentLine2D={calc.tangentLine2D}
                   tangents3D={calc.tangents3D}
                   isDifferential={calc.isDifferential}
+                  constantC={calc.constantC}
                   isApproximate={calc.derivX?.isApproximate}
                 />
               )}
@@ -125,6 +126,8 @@ export default function App() {
                   evaluateFn={calc.evaluateFn}
                   point={calc.point}
                   onChangePoint={calc.setPoint}
+                  constantC={calc.constantC}
+                  onChangeConstantC={calc.setConstantC}
                   slope={calc.slopeX}
                   onResetView={calc.handleResetView}
                 />

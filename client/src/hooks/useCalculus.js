@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { normalizeInput } from "../lib/normalizeInput.js";
 import { parseExpression } from "../lib/parseExpression.js";
 import { computeDerivative } from "../lib/derivatives.js";
-import { sample2D, sample3D } from "../lib/sampleFunction.js";
+import { sample2D, sample3D, solveFamilyOfODE } from "../lib/sampleFunction.js";
 import { compute2DTangentLine, compute3DTangents } from "../lib/tangent.js";
 import { extractFromImage, extractFromText, explainSteps } from "../services/api.js";
 
@@ -11,6 +11,7 @@ export function useCalculus() {
   const [expression, setExpression] = useState("x^3 - 3*x + 1");
   const [latex, setLatex] = useState("x^3 - 3x + 1");
   const [isDifferential, setIsDifferential] = useState(false);
+  const [constantC, setConstantC] = useState(1.0);
   const [mode, setMode] = useState("2d"); // "2d" | "3d" | "differential"
   const [derivativeMode, setDerivativeMode] = useState("ordinary"); // "ordinary" | "partial_x" | "partial_y"
   const [point, setPoint] = useState({ x: 1.5, y: 1.0 });
@@ -67,27 +68,33 @@ export function useCalculus() {
     return sample3D(parseResult.evaluate, xRange, yRange, 45);
   }, [parseResult, mode, isDifferential, xRange, yRange]);
 
+  // 4b. ODE Family Data for differential equation parameterized by constant C
+  const odeData = useMemo(() => {
+    if (!isDifferential || !parseResult?.success) return null;
+    return solveFamilyOfODE(parseResult.evaluate, constantC, point.x, xRange, true);
+  }, [isDifferential, parseResult, constantC, point.x, xRange]);
+
   // 5. Compute point height/value
   const pointValue = useMemo(() => {
     if (!parseResult?.success) return NaN;
-    if (isDifferential) return point.y;
+    if (isDifferential && odeData) return odeData.point.y;
     if (mode === "3d") {
       return parseResult.evaluate({ x: point.x, y: point.y });
     }
     return parseResult.evaluate({ x: point.x });
-  }, [parseResult, point, mode, isDifferential]);
+  }, [parseResult, point, mode, isDifferential, odeData]);
 
   // 6. Compute slopes at active point
   const slopeX = useMemo(() => {
     if (!parseResult?.success || !derivX) return NaN;
-    if (isDifferential) {
-      return parseResult.evaluate({ x: point.x, y: point.y });
+    if (isDifferential && odeData) {
+      return odeData.slope;
     }
     if (mode === "3d") {
       return derivX.evaluateAt({ x: point.x, y: point.y });
     }
     return derivX.evaluateAt({ x: point.x });
-  }, [parseResult, derivX, point, mode, isDifferential]);
+  }, [parseResult, derivX, point, mode, isDifferential, odeData]);
 
   const slopeY = useMemo(() => {
     if (!parseResult?.success || !derivY || mode !== "3d" || isDifferential) return NaN;
@@ -97,9 +104,10 @@ export function useCalculus() {
   // 7. Compute 2D Tangent Line
   const tangentLine2D = useMemo(() => {
     if (mode !== "2d" && !isDifferential) return null;
-    const y0 = isDifferential ? point.y : pointValue;
-    return compute2DTangentLine(point.x, y0, slopeX, xRange);
-  }, [mode, isDifferential, point, pointValue, slopeX, xRange]);
+    const y0 = isDifferential && odeData ? odeData.point.y : pointValue;
+    const m = isDifferential && odeData ? odeData.slope : slopeX;
+    return compute2DTangentLine(point.x, y0, m, xRange);
+  }, [mode, isDifferential, point, pointValue, slopeX, odeData, xRange]);
 
   // 8. Compute 3D Tangents (lines & plane)
   const tangents3D = useMemo(() => {
@@ -295,6 +303,8 @@ export function useCalculus() {
     expression,
     latex,
     isDifferential,
+    constantC,
+    setConstantC,
     mode,
     derivativeMode,
     setDerivativeMode,

@@ -15,6 +15,7 @@ export default function ResultCards({
   tangentLine2D = null,
   tangents3D = null,
   isDifferential = false,
+  constantC = 1.0,
   isApproximate = false,
 }) {
   const is3D = mode === "3d" && !isDifferential;
@@ -28,9 +29,11 @@ export default function ResultCards({
             <span className="font-mono text-muted-foreground uppercase tracking-wider text-[11px] font-semibold">
               Differential Equation (ODE)
             </span>
-            <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
-              1st Order
-            </Badge>
+            <div className="flex items-center space-x-1.5">
+              <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                C = {constantC.toFixed(2)}
+              </Badge>
+            </div>
           </div>
 
           <div className="p-2.5 rounded-lg bg-background/50 border border-border/40">
@@ -41,21 +44,21 @@ export default function ResultCards({
           </div>
         </div>
 
-        {/* Instantaneous Slope at (x0, y0) */}
+        {/* Instantaneous Slope on Active Curve */}
         <div className="rounded-xl border border-border/80 bg-card/60 backdrop-blur-xs p-4 space-y-3 shadow-xs">
           <div className="flex items-center justify-between text-xs">
             <span className="font-mono text-muted-foreground uppercase tracking-wider text-[11px] font-semibold">
-              Instantaneous State
+              Point on Curve y(x; C)
             </span>
             <span className="font-mono text-xs text-slope font-bold">
-              ({point.x.toFixed(2)}, {point.y.toFixed(2)})
+              ({point.x.toFixed(2)}, {pointValue.toFixed(2)})
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs font-mono">
             <div className="p-2.5 rounded-lg bg-background/50 border border-border/40">
               <div className="text-[10px] uppercase text-muted-foreground mb-1">
-                Slope at (x₀, y₀)
+                Slope dy/dx at x₀
               </div>
               <div className="text-lg font-bold text-slope">
                 {isNaN(slopeX) ? "Undefined" : (slopeX >= 0 ? `+${slopeX.toFixed(3)}` : slopeX.toFixed(3))}
@@ -74,11 +77,11 @@ export default function ResultCards({
 
           {/* Tangent line at current point */}
           <div className="pt-2 border-t border-border/40 text-xs font-mono">
-            <div className="text-[10px] uppercase text-muted-foreground mb-1 flex items-center justify-between">
-              <span>Local Tangent Segment</span>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+              <span>Tangent Line at (x₀, y₀)</span>
               <span className="text-muted-foreground/80">Point-Slope</span>
             </div>
-            <div className="p-2 rounded bg-background/50 border border-border/40 text-foreground">
+            <div className="p-2 rounded bg-background/50 border border-border/40 text-foreground font-semibold">
               {tangentLine2D?.equation || "y = mx + b"}
             </div>
           </div>

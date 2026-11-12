@@ -1,5 +1,6 @@
 /**
- * Sampling functions for 2D curves, 3D surfaces, and differential equation slope fields.
+ * Sampling functions for 2D curves, 3D surfaces, differential equation slope fields,
+ * and parameterized family of ODE integral curves y(x; C).
  */
 
 export function sample2D(evaluateFn, xMin = -10, xMax = 10, count = 400) {
@@ -15,7 +16,6 @@ export function sample2D(evaluateFn, xMin = -10, xMax = 10, count = 400) {
     if (isNaN(y) || !isFinite(y)) {
       yVals.push(null);
     } else {
-      // Clamp extreme values so graphs don't distort completely
       if (Math.abs(y) > 1e6) {
         yVals.push(null);
       } else {
@@ -86,12 +86,10 @@ export function sampleSlopeField(evaluateFn, xRange = [-5, 5], yRange = [-5, 5],
 
       if (isNaN(slope) || !isFinite(slope)) continue;
 
-      // Direction vector (1, slope) normalized to segmentLength
       const angle = Math.atan(slope);
       const dx = (segmentLength / 2) * Math.cos(angle);
       const dy = (segmentLength / 2) * Math.sin(angle);
 
-      // Plotly segment with null separator
       linesX.push(x - dx, x + dx, null);
       linesY.push(y - dy, y + dy, null);
 
@@ -126,7 +124,7 @@ export function solveODE_RK4(evaluateFn, x0, y0, xRange = [-5, 5], step = 0.02) 
     return y + (h / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
   };
 
-  // Forward integration
+  // Forward integration from x0 to xMax
   const forwardX = [x0];
   const forwardY = [y0];
   let curX = x0;
@@ -135,13 +133,13 @@ export function solveODE_RK4(evaluateFn, x0, y0, xRange = [-5, 5], step = 0.02) 
   while (curX < xMax) {
     const nextY = rk4Step(curX, curY, step);
     curX += step;
-    if (isNaN(nextY) || Math.abs(nextY) > 100) break;
+    if (isNaN(nextY) || Math.abs(nextY) > 500) break;
     curY = nextY;
     forwardX.push(curX);
     forwardY.push(curY);
   }
 
-  // Backward integration
+  // Backward integration from x0 to xMin
   const backwardX = [];
   const backwardY = [];
   curX = x0;
@@ -150,7 +148,7 @@ export function solveODE_RK4(evaluateFn, x0, y0, xRange = [-5, 5], step = 0.02) 
   while (curX > xMin) {
     const nextY = rk4Step(curX, curY, -step);
     curX -= step;
-    if (isNaN(nextY) || Math.abs(nextY) > 100) break;
+    if (isNaN(nextY) || Math.abs(nextY) > 500) break;
     curY = nextY;
     backwardX.unshift(curX);
     backwardY.unshift(curY);
@@ -159,6 +157,74 @@ export function solveODE_RK4(evaluateFn, x0, y0, xRange = [-5, 5], step = 0.02) 
   return {
     x: [...backwardX, ...forwardX],
     y: [...backwardY, ...forwardY],
+  };
+}
+
+/**
+ * Solves a family of integral curves y(x; C) parameterized by integration constant C (where y(0) = C).
+ * Also computes the exact point (x0, y(x0)) on the active curve and its tangent slope.
+ */
+export function solveFamilyOfODE(evaluateFn, C_active = 1.0, x0 = 1.0, xRange = [-5, 5], showFamily = true) {
+  if (!evaluateFn) {
+    return {
+      activeCurve: { x: [], y: [] },
+      familyCurves: [],
+      point: { x: x0, y: C_active },
+      slope: 0,
+    };
+  }
+
+  // 1. Solve active curve for C_active passing through (0, C_active)
+  const activeSolution = solveODE_RK4(evaluateFn, 0, C_active, xRange, 0.02);
+
+  // 2. Interpolate y-value at x0 on the active curve
+  let yAtX0 = C_active;
+  if (activeSolution.x.length > 1) {
+    // Find closest segment to x0
+    let bestIdx = 0;
+    let minDiff = Infinity;
+    for (let i = 0; i < activeSolution.x.length; i++) {
+      const diff = Math.abs(activeSolution.x[i] - x0);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestIdx = i;
+      }
+    }
+
+    if (minDiff < 0.05) {
+      yAtX0 = activeSolution.y[bestIdx];
+    } else {
+      // Direct RK4 integration from 0 to x0 for exact precision
+      const direct = solveODE_RK4(evaluateFn, 0, C_active, [Math.min(0, x0), Math.max(0, x0)], 0.02);
+      if (direct.y.length > 0) {
+        yAtX0 = x0 >= 0 ? direct.y[direct.y.length - 1] : direct.y[0];
+      }
+    }
+  }
+
+  // 3. Slope at (x0, yAtX0)
+  const slopeAtX0 = evaluateFn({ x: x0, y: yAtX0 });
+
+  // 4. Generate family curves for C offsets (e.g. C - 2, C - 1, C + 1, C + 2)
+  const familyCurves = [];
+  if (showFamily) {
+    const offsets = [-2.5, -1.25, 1.25, 2.5];
+    for (const offset of offsets) {
+      const cVal = parseFloat((C_active + offset).toFixed(2));
+      const sol = solveODE_RK4(evaluateFn, 0, cVal, xRange, 0.03);
+      familyCurves.push({
+        C: cVal,
+        x: sol.x,
+        y: sol.y,
+      });
+    }
+  }
+
+  return {
+    activeCurve: activeSolution,
+    familyCurves,
+    point: { x: x0, y: yAtX0 },
+    slope: slopeAtX0,
   };
 }
 
@@ -191,4 +257,3 @@ export function sampleMultipleSlopes(evaluateFn, derivFn, xRange = [-5, 5], coun
 
   return { linesX, linesY, points };
 }
-
