@@ -124,82 +124,22 @@ See `PRD.md` (Section 9) for the complete tree.
 - **Git**
 - A free **Gemini API key** from [Google AI Studio](https://aistudio.google.com) (click **Get API key**)
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/<your-username>/calculus-visualizer.git
-cd calculus-visualizer
-```
-
-### 2. Set up the backend
-
-```bash
-cd server
-npm install
-```
-
-Create your environment file:
-
-```bash
-# macOS / Linux
-cp .env.example .env
-
-# Windows (Command Prompt)
-copy .env.example .env
-```
-
-Open `server/.env` and fill it in:
-
-```
+### 1. Paste your Gemini API Key
+Open `server/.env` and paste your key:
+```env
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
-PORT=5000
-CLIENT_ORIGIN=http://localhost:5173
 ```
 
-> 🔒 Never commit `.env` or share your API key. `.env` is already in `.gitignore`.
-
-Start the server:
-
+### 2. Start Both Servers (Single Command)
+From the project root:
 ```bash
 npm run dev
 ```
+This runs both the backend (`http://localhost:5000`) and frontend (`http://localhost:5173`) concurrently with unified color-coded logs!
 
-Check that it works by opening `http://localhost:5000/api/health`. You should see `{"ok":true,...}`.
+*(Alternatively, you can run `cd server && npm run dev` and `cd client && npm run dev` in separate terminals).*
 
-### 3. Set up the frontend
-
-Open a **second terminal**:
-
-```bash
-cd client
-npm install
-```
-
-Create the environment file:
-
-```bash
-# macOS / Linux
-cp .env.example .env
-
-# Windows (Command Prompt)
-copy .env.example .env
-```
-
-`client/.env` should contain:
-
-```
-VITE_API_URL=http://localhost:5000
-```
-
-Start the app:
-
-```bash
-npm run dev
-```
-
-### 4. Open the app
-
+### 3. Open the App
 Go to **http://localhost:5173** and try it out. 🎉
 
 ---

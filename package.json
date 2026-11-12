@@ -1,0 +1,16 @@
+{
+  "name": "calclens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CalcLens - Calculus & Differential Equation Visualizer",
+  "scripts": {
+    "dev": "concurrently -n \"server,client\" -c \"cyan,magenta\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
+
